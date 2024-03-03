@@ -39,14 +39,15 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
-	# Workaround for build failure https://github.com/mattn/go-sqlite3/issues/1164 (fixed in future go-sqlite3 release)
+	# Workaround for build failure https://github.com/mattn/go-sqlite3/issues/1164 (fixed in future go-sqlite3 release
 	#export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
-    #go get github.com/mattn/go-sqlite3@v1.14.22 ; \
+  #go get github.com/mattn/go-sqlite3@v1.14.22 ; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
 	! ldd /usr/local/bin/podman
 RUN set -ex; \
+  #go get github.com/mattn/go-sqlite3@v1.14.22 ; \
 	CGO_ENABLED=0 make bin/rootlessport BUILDFLAGS=" -mod=vendor -ldflags=\"-s -w -extldflags '-static'\""; \
 	mkdir -p /usr/local/lib/podman; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \

@@ -1,10 +1,10 @@
 # Download gpg
-FROM alpine:3.19 AS gpg
+FROM alpine:3.18 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.21-alpine AS runc
+FROM golang:1.21-alpine3.18 AS runc
 ARG RUNC_VERSION=v1.1.12
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.21-alpine AS podmanbuildbase
+FROM golang:1.21-alpine3.18 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -41,7 +41,7 @@ RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	# Workaround for build failure https://github.com/mattn/go-sqlite3/issues/1164 (fixed in future go-sqlite3 release)
 	#export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"; \
-        go get github.com/mattn/go-sqlite3@v1.14.22 ; \
+    #go get github.com/mattn/go-sqlite3@v1.14.22 ; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
 	mv bin/podman /usr/local/bin/podman; \
 	podman --help >/dev/null; \
@@ -158,7 +158,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.19 AS podmanbase
+FROM alpine:3.18 AS podmanbase
 LABEL maintainer=""
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon

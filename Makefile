@@ -71,7 +71,7 @@ delete-builder:
 	$(DOCKER) buildx rm $(BUILDX_BUILDER)
 
 register-qemu-binfmt: ## Enable multiarch support on the host
-	$(DOCKER) run --rm --privileged multiarch/qemu-user-static:7.0.0-7 --reset -p yes
+	$(DOCKER) run --rm --privileged multiarch/qemu-user-static:7.2.0-1 --reset -p yes
 
 test: test-use-cases test-minimal-image
 
@@ -103,7 +103,7 @@ tar: .podman-from-container
 	rm -rf $(ASSET_DIR)
 	mkdir -p $(ASSET_DIR)/etc $(ASSET_DIR)/usr/local
 	cp -r conf/containers $(ASSET_DIR)/etc/containers
-	cp -r conf/cni $(ASSET_DIR)/etc/cni
+	#cp -r conf/cni $(ASSET_DIR)/etc/cni
 	cp README.md $(ASSET_DIR)/
 	cp -r $(IMAGE_ROOTFS)/usr/local/lib $(ASSET_DIR)/usr/local/lib
 	cp -r $(IMAGE_ROOTFS)/usr/local/bin $(ASSET_DIR)/usr/local/bin

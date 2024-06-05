@@ -28,7 +28,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 
-ARG PODMAN_VERSION=v5.0.3
+ARG PODMAN_VERSION=v5.1.1
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -80,7 +80,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS netavark
 #RUN apk add --update --no-cache tzdata curl rust cargo
 RUN apk add --update --no-cache rust cargo
-ARG NETAVARK_VERSION=v1.10.3
+ARG NETAVARK_VERSION=v1.11.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
@@ -207,7 +207,5 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-#COPY --from=cniplugins /usr/local/lib/cni /usr/local/lib/cni
 COPY --from=netavark /netavark/bin/netavark /usr/local/lib/podman/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
-#COPY conf/cni /etc/cni

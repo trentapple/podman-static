@@ -28,7 +28,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 
-ARG PODMAN_VERSION=v5.1.1
+ARG PODMAN_VERSION=v5.1.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -58,22 +58,6 @@ WORKDIR /conmon
 RUN set -ex; \
 	make git-vars bin/conmon PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-s -w -static'; \
 	bin/conmon --help >/dev/null
-
-
-# CNI network backend and Cgroups V1 are deprecated
-# https://github.com/containers/podman/blob/main/docs/source/markdown/podman-network.1.md
-# CNI plugins (removed in podman 5.0 and replaced by netavark)
-#FROM podmanbuildbase AS cniplugins
-#ARG CNI_PLUGIN_VERSION=v1.4.0
-#ARG CNI_PLUGINS="ipam/host-local main/loopback main/bridge meta/portmap meta/tuning meta/firewall"
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CNI_PLUGIN_VERSION} https://github.com/containernetworking/plugins /go/src/github.com/containernetworking/plugins
-#WORKDIR /go/src/github.com/containernetworking/plugins
-#RUN set -ex; \
-#	for PLUGINDIR in $CNI_PLUGINS; do \
-#		PLUGINBIN=/usr/local/lib/cni/$(basename $PLUGINDIR); \
-#		CGO_ENABLED=0 go build -o $PLUGINBIN -ldflags "-s -w -extldflags '-static'" ./plugins/$PLUGINDIR; \
-#		! ldd $PLUGINBIN; \
-#	done
 
 
 # netavark

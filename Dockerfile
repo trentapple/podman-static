@@ -64,7 +64,8 @@ RUN cargo build --release
 FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2024_06_24.1ee2eca
+# https://passt.top/passt/
+ARG PASST_VERSION=2024_08_06.ee36266
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
@@ -73,6 +74,7 @@ RUN set -ex; \
 	cp pasta bin/; \
 	[ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
 	! ldd /passt/bin/pasta
+
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
@@ -88,6 +90,18 @@ RUN set -ex; \
 
 
 # netavark
+## build using rustbase
+#FROM rustbase AS netavark
+#RUN apk add --update --no-cache protoc
+#ARG NETAVARK_VERSION=v1.11.0
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSION https://github.com/containers/netavark
+#WORKDIR /netavark
+#ENV RUSTFLAGS='-C link-arg=-s'
+#RUN cargo build --release
+
+
+# netavark
+## build using podmanbuildbase
 FROM podmanbuildbase AS netavark
 #RUN apk add --update --no-cache tzdata curl rust cargo
 RUN apk add --update --no-cache rust cargo
@@ -97,7 +111,6 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSI
 WORKDIR /netavark
 RUN set -ex; \
 	make build_netavark
-#	make
 
 
 # slirp4netns

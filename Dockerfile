@@ -1,11 +1,11 @@
 # Download gpg
-FROM alpine:3.18 AS gpg
+FROM alpine:3.19 AS gpg
 RUN apk add --no-cache gnupg
 
 
 # runc
-FROM golang:1.21-alpine3.18 AS runc
-ARG RUNC_VERSION=v1.1.12
+FROM golang:1.22-alpine3.19 AS runc
+ARG RUNC_VERSION=v1.1.13
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
@@ -16,7 +16,7 @@ RUN set -eux; \
 
 
 # podman build base
-FROM golang:1.21-alpine3.18 AS podmanbuildbase
+FROM golang:1.21-alpine3.19 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -28,12 +28,16 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 
-ARG PODMAN_VERSION=v5.1.2
+ARG PODMAN_VERSION=v5.2.0
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
+RUN set -eux; \
+	COMMON_VERSION=$(grep -Eom1 'github.com/containers/common [^ ]+' go.mod | sed 's!github.com/containers/common !!'); \
+	mkdir -p /etc/containers; \
+	curl -fsSL "https://raw.githubusercontent.com/containers/common/${COMMON_VERSION}/pkg/seccomp/seccomp.json" > /etc/containers/seccomp.json
 RUN set -ex; \
 	export CGO_ENABLED=$PODMAN_CGO; \
 	make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
@@ -47,11 +51,34 @@ RUN set -ex; \
 	! ldd /usr/local/lib/podman/rootlessport
 
 
+# aardvark-dns
+FROM rustbase AS aardvark-dns
+ARG AARDVARKDNS_VERSION=v1.11.0
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
+WORKDIR /aardvark-dns
+ENV RUSTFLAGS='-C link-arg=-s'
+RUN cargo build --release
+
+
+# passt
+FROM podmanbuildbase AS passt
+WORKDIR /
+RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
+ARG PASST_VERSION=2024_06_24.1ee2eca
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
+WORKDIR /passt
+RUN set -ex; \
+	make static; \
+	mkdir bin; \
+	cp pasta bin/; \
+	[ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
+	! ldd /passt/bin/pasta
+
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 #RUN apk add --update --no-cache tzdata curl
 
-ARG CONMON_VERSION=v2.1.11
+ARG CONMON_VERSION=v2.1.12
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon.git /conmon
 WORKDIR /conmon
@@ -64,7 +91,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS netavark
 #RUN apk add --update --no-cache tzdata curl rust cargo
 RUN apk add --update --no-cache rust cargo
-ARG NETAVARK_VERSION=v1.11.0
+ARG NETAVARK_VERSION=v1.12.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 WORKDIR /netavark
@@ -112,7 +139,7 @@ RUN set -ex; \
 	touch /dev/fuse; \
 	ninja install; \
 	fusermount3 -V
-ARG FUSEOVERLAYFS_VERSION=v1.13
+ARG FUSEOVERLAYFS_VERSION=v1.14
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$FUSEOVERLAYFS_VERSION https://github.com/containers/fuse-overlayfs /fuse-overlayfs
 WORKDIR /fuse-overlayfs
 RUN set -ex; \
@@ -137,7 +164,7 @@ RUN set -ex; \
 
 
 # Build podman base image
-FROM alpine:3.18 AS podmanbase
+FROM alpine:3.19 AS podmanbase
 LABEL maintainer=""
 RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
@@ -173,14 +200,15 @@ COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 # (switched keyserver from sks to ubuntu since sks is offline now 
 # and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
-ARG CRUN_VERSION=1.15
+ARG CRUN_VERSION=1.16
 RUN set -ex; \
-	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd; \
-	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-amd64-disable-systemd.asc; \
+	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
+	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
+	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
 	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
 	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
 	chmod +x /usr/local/bin/crun; \
-	crun --help >/dev/null
+	! ldd /usr/local/bin/crun
 
 # Build minimal rootless podman
 FROM rootlesspodmanbase AS rootlesspodmanminimal

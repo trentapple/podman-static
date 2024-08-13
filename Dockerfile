@@ -245,7 +245,7 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-COPY --from=netavark /netavark/bin/netavark /usr/local/lib/podman/netavark
+COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns

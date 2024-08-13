@@ -181,6 +181,21 @@ RUN set -ex; \
 	./catatonit --version
 
 
+# Download crun
+# (switched keyserver from sks to ubuntu since sks is offline now 
+# and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
+FROM gpg AS crun
+ARG CRUN_VERSION=1.16
+RUN set -ex; \
+	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
+	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
+	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
+	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
+	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
+	chmod +x /usr/local/bin/crun; \
+	! ldd /usr/local/bin/crun
+
+
 # Build podman base image
 FROM alpine:3.19 AS podmanbase
 LABEL maintainer=""
@@ -201,7 +216,19 @@ RUN set -ex; \
 	mkdir -m1777 /.local /.config /.cache; \
 	podman --help >/dev/null; \
 	/usr/local/lib/podman/conmon --help >/dev/null
+RUN set -ex; \
+	adduser -D podman -h /podman -u 1000; \
+	echo 'podman:1:999' > /etc/subuid; \
+	echo 'podman:1001:64535' >> /etc/subuid; \
+	cp /etc/subuid /etc/subgid; \
+	ln -s /usr/local/bin/podman /usr/bin/docker; \
+	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
+	chown -R podman:podman /podman; \
+	mkdir -m1777 /.local /.config /.cache; \
+	podman --help >/dev/null; \
+	/usr/local/lib/podman/conmon --help >/dev/null
 ENV _CONTAINERS_USERNS_CONFIGURED=""
+
 
 # Build rootless podman base image (without OCI runtime)
 FROM podmanbase AS rootlesspodmanbase
@@ -209,29 +236,27 @@ ENV BUILDAH_ISOLATION=chroot container=oci
 RUN apk add --no-cache shadow-uidmap
 COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
+COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
+
+
+# Build podman image with all binaries
+FROM rootlesspodmanbase AS podmanall
+RUN apk add --no-cache iptables ip6tables nftables
+COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
+COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
+COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
 
 # Build rootless podman base image with runc
 FROM rootlesspodmanbase AS rootlesspodmanrunc
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 
-# Download crun
-# (switched keyserver from sks to ubuntu since sks is offline now 
-# and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
-FROM gpg AS crun
-ARG CRUN_VERSION=1.16
-RUN set -ex; \
-	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
-	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
-	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
-	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
-	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
-	chmod +x /usr/local/bin/crun; \
-	! ldd /usr/local/bin/crun
 
 # Build minimal rootless podman
 FROM rootlesspodmanbase AS rootlesspodmanminimal
 COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 COPY conf/crun-containers.conf /etc/containers/containers.conf
+
 
 # Build podman image with rootless binaries and CNI plugins
 FROM rootlesspodmanrunc AS podmanall

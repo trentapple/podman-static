@@ -9,12 +9,9 @@ AuthorizedKeysFile	.ssh/authorized_keys
 PasswordAuthentication no
 PubkeyAuthentication yes
 PermitRootLogin no
-#LoginGraceTime 1m
-LoginGraceTime 0
-#MaxAuthTries 6
-MaxAuthTries 3
-#MaxSessions 10
-MaxSessions 5
+LoginGraceTime 1m
+MaxAuthTries 6
+MaxSessions 8
 
 UseDNS no
 AllowAgentForwarding no
@@ -30,4 +27,4 @@ Match User podman
 	AllowTcpForwarding yes
 	PermitTTY no
 	# TODO:
-	#ForceCommand podman ???
+	#ForceCommand

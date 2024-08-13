@@ -50,6 +50,8 @@ RUN set -ex; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
 	! ldd /usr/local/lib/podman/rootlessport
 
+FROM rust:1.78-alpine3.19 AS rustbase
+RUN apk add --update --no-cache git make musl-dev
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns

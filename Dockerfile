@@ -239,14 +239,6 @@ COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 
 
-# Build podman image with all binaries
-FROM rootlesspodmanbase AS podmanall
-RUN apk add --no-cache iptables ip6tables nftables
-COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
-COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
-COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
-COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json
-
 # Build rootless podman base image with runc
 FROM rootlesspodmanbase AS rootlesspodmanrunc
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
@@ -259,8 +251,12 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 
 
 # Build podman image with rootless binaries and CNI plugins
-FROM rootlesspodmanrunc AS podmanall
-RUN apk add --no-cache iptables ip6tables
+#FROM rootlesspodmanrunc AS podmanall
+FROM rootlesspodmanbase AS podmanall
+RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 COPY --from=netavark /netavark/bin/netavark /usr/local/lib/podman/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
+COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
+COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json

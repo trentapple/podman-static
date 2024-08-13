@@ -203,19 +203,9 @@ RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
+COPY --from=passt /passt/bin/ /usr/local/bin/
+COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
 COPY conf/containers /etc/containers
-# Rootlesskit is not necessary for rootless podman
-RUN set -ex; \
-	adduser -D podman -h /podman -u 1000; \
-	echo 'podman:1:999' > /etc/subuid; \
-	echo 'podman:1001:64535' >> /etc/subuid; \
-	cp /etc/subuid /etc/subgid; \
-	ln -s /usr/local/bin/podman /usr/bin/docker; \
-	mkdir -p /podman/.local/share/containers/storage /var/lib/containers/storage; \
-	chown -R podman:podman /podman; \
-	mkdir -m1777 /.local /.config /.cache; \
-	podman --help >/dev/null; \
-	/usr/local/lib/podman/conmon --help >/dev/null
 RUN set -ex; \
 	adduser -D podman -h /podman -u 1000; \
 	echo 'podman:1:999' > /etc/subuid; \

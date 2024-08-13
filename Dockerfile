@@ -20,7 +20,7 @@ FROM golang:1.21-alpine3.19 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
-	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
+	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl nftables \
 	bash go-md2man
 
 
@@ -50,8 +50,11 @@ RUN set -ex; \
 	mv bin/rootlessport /usr/local/lib/podman/rootlessport; \
 	! ldd /usr/local/lib/podman/rootlessport
 
+
+# rust
 FROM rust:1.78-alpine3.19 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
+
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
@@ -245,7 +248,7 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
-COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
+#COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns

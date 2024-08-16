@@ -204,6 +204,12 @@ RUN set -ex; \
 	! ldd /usr/local/bin/crun
 
 
+# Build minimal rootless podman
+FROM rootlesspodmanbase AS rootlesspodmanminimal
+COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
+COPY conf/crun-containers.conf /etc/containers/containers.conf
+
+
 # Build rootless podman base image (without OCI runtime)
 FROM podmanbase AS rootlesspodmanbase
 ENV BUILDAH_ISOLATION=chroot container=oci
@@ -228,12 +234,6 @@ RUN set -eux; \
 # Build rootless podman base image with runc
 FROM rootlesspodmanbase AS rootlesspodmanrunc
 COPY --from=runc /usr/local/bin/runc /usr/local/bin/runc
-
-
-# Build minimal rootless podman
-FROM rootlesspodmanbase AS rootlesspodmanminimal
-COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
-COPY conf/crun-containers.conf /etc/containers/containers.conf
 
 
 # Build podman image with rootless binaries and CNI plugins

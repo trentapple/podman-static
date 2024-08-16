@@ -127,7 +127,7 @@ verify-signature:
 		for _ in `seq 1 10`; do \
 			TMPDIR=$$(mktemp -d); \
 			export GNUPGHOME=$$TMPDIR; \
-			gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys C1EAB6D69BC45DCB758A46B9B874F7B61B16FBA6 && \
+			gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys F21FFB49829AC71EEDC6AD1E7D6456922DAE0D70 && \
 			gpg --list-keys && \
 			gpg --batch --verify $(ASSET_DIR).tar.gz.asc $(ASSET_DIR).tar.gz && \
 			rm -rf $$TMPDIR && \
@@ -147,7 +147,7 @@ run:
 		$(PODMAN_IMAGE) /bin/sh
 
 clean:
-	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.19 rm -rf /work/build
+	$(DOCKER) run --rm -v "`pwd`:/work" alpine:3.20 rm -rf /work/build
 
 run-server: podman-ssh
 	# TODO: make sshd log to stdout (while still ensuring that we know when it is available)
@@ -185,7 +185,7 @@ $(BATS):
 	set -e ;\
 	rm -rf $(BATS_DIR).tmp ;\
 	mkdir -p $(BATS_DIR).tmp ;\
-	git clone -c 'advice.detachedHead=false' --depth=1 --branch $(BATS_VERSION) https://github.com/bats-core/bats-core.git $(BATS_DIR).tmp >/dev/null ;\
+	git clone -c 'advice.detachedHead=false' --depth=1 --branch $(BATS_VERSION) https://github.com/bats-core/bats-core $(BATS_DIR).tmp >/dev/null ;\
 	$(BATS_DIR).tmp/install.sh "$(BATS_DIR)" ;\
 	rm -rf $(BATS_DIR).tmp ;\
 	}

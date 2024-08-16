@@ -3,18 +3,6 @@ FROM alpine:3.20 AS gpg
 RUN apk add --no-cache gnupg
 
 
-# runc
-FROM golang:1.22-alpine3.20 AS runc
-ARG RUNC_VERSION=v1.1.13
-# Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
-RUN set -eux; \
-	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
-	wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
-	chmod +x /usr/local/bin/runc; \
-	runc --version; \
-	! ldd /usr/local/bin/runc
-
-
 # podman build base
 FROM golang:1.22-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
@@ -179,19 +167,6 @@ RUN set -ex; \
 	./catatonit --version
 
 
-# Download crun
-FROM gpg AS crun
-ARG CRUN_VERSION=1.16.1
-RUN set -ex; \
-	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
-	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
-	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
-	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
-	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
-	chmod +x /usr/local/bin/crun; \
-	! ldd /usr/local/bin/crun
-
-
 # Build podman base image
 FROM alpine:3.20 AS podmanbase
 LABEL maintainer=""
@@ -200,7 +175,6 @@ COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
 COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
-COPY --from=passt /passt/bin/pasta /usr/local/bin/pasta
 COPY --from=passt /passt/bin/ /usr/local/bin/
 COPY conf/containers /etc/containers
 RUN set -ex; \
@@ -217,6 +191,19 @@ RUN set -ex; \
 ENV _CONTAINERS_USERNS_CONFIGURED=""
 
 
+# Download crun
+FROM gpg AS crun
+ARG CRUN_VERSION=1.16.1
+RUN set -ex; \
+	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
+	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
+	wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
+	gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
+	gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
+	chmod +x /usr/local/bin/crun; \
+	! ldd /usr/local/bin/crun
+
+
 # Build rootless podman base image (without OCI runtime)
 FROM podmanbase AS rootlesspodmanbase
 ENV BUILDAH_ISOLATION=chroot container=oci
@@ -226,9 +213,21 @@ COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 
 
+# runc
+FROM golang:1.22-alpine3.20 AS runc
+ARG RUNC_VERSION=v1.1.13
+# Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
+RUN set -eux; \
+	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
+	wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
+	chmod +x /usr/local/bin/runc; \
+	runc --version; \
+	! ldd /usr/local/bin/runc
+
+
 # Build rootless podman base image with runc
 FROM rootlesspodmanbase AS rootlesspodmanrunc
-COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
+COPY --from=runc /usr/local/bin/runc /usr/local/bin/runc
 
 
 # Build minimal rootless podman
@@ -243,7 +242,7 @@ FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 #COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
-COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
-COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
+COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
+#COPY --from=runc /usr/local/bin/runc /usr/local/bin/runc
 COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json

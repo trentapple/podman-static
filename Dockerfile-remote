@@ -3,8 +3,9 @@ FROM golang:1.22-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
-	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables \
+	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables ip6tables nftables \
 	bash go-md2man
+
 
 # podman remote
 FROM podmanbuildbase AS podman-remote

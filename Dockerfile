@@ -20,7 +20,7 @@ FROM golang:1.22-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
-	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl nftables \
+	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables ip6tables nftables \
 	bash go-md2man
 
 
@@ -51,48 +51,21 @@ RUN set -ex; \
 	! ldd /usr/local/lib/podman/rootlessport
 
 
-# rust
-FROM rust:1.80-alpine3.20 AS rustbase
-RUN apk add --update --no-cache git make musl-dev
-
-
-# aardvark-dns
-FROM rustbase AS aardvark-dns
-ARG AARDVARKDNS_VERSION=v1.12.1
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
-WORKDIR /aardvark-dns
-ENV RUSTFLAGS='-C link-arg=-s'
-RUN cargo build --release
-
-
-# passt
-FROM podmanbuildbase AS passt
-WORKDIR /
-RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-# https://passt.top/passt/
-ARG PASST_VERSION=2024_08_06.ee36266
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
-WORKDIR /passt
-RUN set -ex; \
-	make static; \
-	mkdir bin; \
-	cp pasta bin/; \
-	[ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
-	! ldd /passt/bin/pasta
-
-
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
 #RUN apk add --update --no-cache tzdata curl
-
 ARG CONMON_VERSION=v2.1.12
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION} https://github.com/containers/conmon /conmon
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon.git /conmon
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon /conmon
 WORKDIR /conmon
 RUN set -ex; \
 	make git-vars bin/conmon PKG_CONFIG='pkg-config --static' CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static' LDFLAGS='-s -w -static'; \
 	bin/conmon --help >/dev/null
+
+
+# rust
+FROM rust:1.80-alpine3.20 AS rustbase
+RUN apk add --update --no-cache git make musl-dev
 
 
 # netavark
@@ -119,6 +92,30 @@ RUN cargo build --release
 #	make build_netavark
 
 
+# aardvark-dns
+FROM rustbase AS aardvark-dns
+ARG AARDVARKDNS_VERSION=v1.12.1
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
+WORKDIR /aardvark-dns
+ENV RUSTFLAGS='-C link-arg=-s'
+RUN cargo build --release
+
+
+# passt (https://passt.top/passt/)
+FROM podmanbuildbase AS passt
+WORKDIR /
+RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
+ARG PASST_VERSION=2024_08_06.ee36266
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
+WORKDIR /passt
+RUN set -ex; \
+	make static; \
+	mkdir bin; \
+	cp pasta bin/; \
+	[ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
+	! ldd /passt/bin/pasta
+
+
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
 WORKDIR /
@@ -136,8 +133,7 @@ RUN set -ex; \
 WORKDIR /
 ARG SLIRP4NETNS_VERSION=v1.3.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns.git
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns.git
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns
 WORKDIR /slirp4netns
 RUN set -ex; \
 	./autogen.sh; \
@@ -175,7 +171,6 @@ FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
 ARG CATATONIT_VERSION=v0.2.0
 RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit /catatonit
-#RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit.git /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
 	./autogen.sh; \
@@ -185,8 +180,6 @@ RUN set -ex; \
 
 
 # Download crun
-# (switched keyserver from sks to ubuntu since sks is offline now 
-# and gpg refuses to import keys from keys.openpgp.org because it does not provide a user ID with the key.)
 FROM gpg AS crun
 ARG CRUN_VERSION=1.16.1
 RUN set -ex; \

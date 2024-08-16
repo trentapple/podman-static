@@ -70,7 +70,7 @@ FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
 # https://passt.top/passt/
-ARG PASST_VERSION=2024_08_14.61c0b0d
+ARG PASST_VERSION=2024_08_06.ee36266
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \

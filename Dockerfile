@@ -18,7 +18,7 @@ RUN apk add --no-cache gnupg
 # runc
 FROM golang:1.22-alpine3.20 AS runc
 ARG RUNC_VERSION=v1.1.13
-RUN apk add --no-cache git make gcc musl-dev pkgconf
+RUN apk add --no-cache git make gcc musl-dev pkgconf libseccomp-dev libseccomp-static
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $RUNC_VERSION https://github.com/opencontainers/runc.git /runc
 WORKDIR /runc
 RUN make static BUILDTAGS="seccomp apparmor selinux"

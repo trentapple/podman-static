@@ -64,7 +64,7 @@ RUN set -ex; \
 
 
 # rust
-FROM rust:1.80-alpine3.20 AS rustbase
+FROM rust:1.78-alpine3.20 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 

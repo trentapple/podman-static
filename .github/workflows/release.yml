@@ -40,25 +40,25 @@ jobs:
         GPG_SIGN_KEY_PASSPHRASE: ${{ secrets.GPG_SIGN_KEY_PASSPHRASE }}
 
     - name: Upload a Build Artifact archive amd64
-      uses: actions/upload-artifact@v2.1.1
+      uses: actions/upload-artifact@v4.6.0
       with:
         path: ./build/asset/podman-linux-amd64.tar.gz
         name: podman-linux-amd64.tar.gz
 
     - name: Upload a Build Artifact signature amd64
-      uses: actions/upload-artifact@v2.1.1
+      uses: actions/upload-artifact@v4.6.0
       with:
         path: ./build/asset/podman-linux-amd64.tar.gz.asc
         name: podman-linux-amd64.tar.gz.asc
 
     - name: Upload a Build Artifact archive aarch64
-      uses: actions/upload-artifact@v2.1.1
+      uses: actions/upload-artifact@v4.6.0
       with:
         path: ./build/asset/podman-linux-arm64.tar.gz
         name: podman-linux-arm64.tar.gz
 
     - name: Upload a Build Artifact signature aarch64
-      uses: actions/upload-artifact@v2.1.1
+      uses: actions/upload-artifact@v4.6.0
       with:
         path: ./build/asset/podman-linux-arm64.tar.gz.asc
         name: podman-linux-arm64.tar.gz.asc

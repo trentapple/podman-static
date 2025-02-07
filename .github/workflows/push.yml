@@ -20,25 +20,25 @@ jobs:
         packages: write
     steps:
     - name: Download a Build Artifact archive amd64
-      uses: actions/download-artifact@v2.1.1
+      uses: actions/download-artifact@v4.1.8
       with:
         path: ./build/asset/podman-linux-amd64.tar.gz
         name: podman-linux-amd64.tar.gz
 
     - name: Download a Build Artifact signature amd64
-      uses: actions/upload-artifact@v2.1.1
+      uses: actions/upload-artifact@v4.6.0
       with:
         path: ./build/asset/podman-linux-amd64.tar.gz.asc
         name: podman-linux-amd64.tar.gz.asc
 
     - name: Download a Build Artifact archive aarch64
-      uses: actions/download-artifact@v2.1.1
+      uses: actions/download-artifact@v4.1.8
       with:
         path: ./build/asset/podman-linux-arm64.tar.gz
         name: podman-linux-arm64.tar.gz
 
     - name: Download a Build Artifact signature aarch64
-      uses: actions/download-artifact@v2.1.1
+      uses: actions/download-artifact@v4.1.8
       with:
         path: ./build/asset/podman-linux-arm64.tar.gz.asc
         name: podman-linux-arm64.tar.gz.asc

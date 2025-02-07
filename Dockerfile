@@ -5,7 +5,7 @@ RUN apk add --no-cache gnupg
 
 # runc
 FROM golang:1.22-alpine3.20 AS runc
-ARG RUNC_VERSION=v1.1.13
+ARG RUNC_VERSION=v1.2.4
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
@@ -28,7 +28,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 FROM podmanbuildbase AS podman
 RUN apk add --update --no-cache tzdata curl
 
-ARG PODMAN_VERSION=v5.2.1
+ARG PODMAN_VERSION=v5.3.2
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
@@ -72,7 +72,7 @@ RUN apk add --update --no-cache git make musl-dev
 ## build using rustbase
 FROM rustbase AS netavark
 RUN apk add --update --no-cache protoc
-ARG NETAVARK_VERSION=v1.12.1
+ARG NETAVARK_VERSION=v1.13.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$NETAVARK_VERSION https://github.com/containers/netavark
 WORKDIR /netavark
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -84,7 +84,7 @@ RUN cargo build --release
 #FROM podmanbuildbase AS netavark
 ##RUN apk add --update --no-cache tzdata curl rust cargo
 #RUN apk add --update --no-cache rust cargo
-#ARG NETAVARK_VERSION=v1.12.1
+#ARG NETAVARK_VERSION=v1.13.1
 #RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION} https://github.com/containers/netavark /netavark
 ##RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark /netavark
 #WORKDIR /netavark
@@ -94,7 +94,7 @@ RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
-ARG AARDVARKDNS_VERSION=v1.12.1
+ARG AARDVARKDNS_VERSION=v1.13.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
 ENV RUSTFLAGS='-C link-arg=-s'
@@ -105,7 +105,7 @@ RUN cargo build --release
 FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2024_08_06.ee36266
+ARG PASST_VERSION=2024_11_21.238c69f
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
@@ -121,7 +121,7 @@ FROM podmanbuildbase AS slirp4netns
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm
 # Build libslirp
-ARG LIBSLIRP_VERSION=v4.8.0
+ARG LIBSLIRP_VERSION=v4.9.0
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
 WORKDIR /libslirp
 RUN set -ex; \
@@ -169,7 +169,7 @@ RUN set -ex; \
 # catatonit
 FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
-ARG CATATONIT_VERSION=v0.2.0
+ARG CATATONIT_VERSION=v0.2.1
 RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
@@ -181,7 +181,7 @@ RUN set -ex; \
 
 # Download crun
 FROM gpg AS crun
-ARG CRUN_VERSION=1.16.1
+ARG CRUN_VERSION=1.20
 RUN set -ex; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
 	wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \

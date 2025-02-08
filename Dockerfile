@@ -5,15 +5,13 @@ RUN apk add --no-cache gnupg
 # runc
 FROM golang:1.23-alpine3.20 AS runc
 ARG RUNC_VERSION=v1.2.4
+# Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
-    apk add --no-cache git; \
-    git clone -c 'advice.detachedHead=false' --depth=1 --branch=${RUNC_VERSION} https://github.com/opencontainers/runc; \
-    cd runc; \
-    make static BUILDTAGS='seccomp apparmor selinux'; \
-    cp runc /usr/local/bin/runc; \
-    chmod +x /usr/local/bin/runc; \
-    runc --version; \
-    ! ldd /usr/local/bin/runc
+	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
+	wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
+	chmod +x /usr/local/bin/runc; \
+	runc --version; \
+	! ldd /usr/local/bin/runc
 
 # podman build base
 FROM golang:1.23-alpine3.20 AS podmanbuildbase

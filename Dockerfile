@@ -90,13 +90,13 @@ FROM podmanbuildbase AS passt
 ARG PASST_VERSION
 WORKDIR /
 RUN apk add --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PASST_VERSION:-$(curl -s https://api.github.com/repos/passt/releases/latest | grep tag_name | cut -d '"' -f 4)} git://passt.top/passt
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PASST_VERSION} git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
     make static; \
     mkdir -p bin; \
-    mv pasta bin/; \
-    [ ! -f pasta.avx2 ] || mv pasta.avx2 bin/; \
+    cp pasta bin/; \
+    [ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
     ! ldd /passt/bin/pasta
 
 # fuse-overlayfs

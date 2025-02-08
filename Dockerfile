@@ -79,7 +79,7 @@ RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
-ARG AARDVARK-DNS_VERSION
+ARG AARDVARKDNS_VERSION
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${AARDVARKDNS_VERSION:-$(curl -s https://api.github.com/repos/containers/aardvark-dns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
 ENV RUSTFLAGS='-C target-feature=-crt-static -C target-cpu=native -C link-arg=-s'

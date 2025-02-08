@@ -109,8 +109,8 @@ WORKDIR /libfuse
 RUN set -ex; \
     mkdir -p build; \
     cd build; \
+    rm -r ../example; \
     LDFLAGS="-lpthread -s -w -static" meson --prefix /usr -D default_library=static .. || (cat /libfuse/build/meson-logs/meson-log.txt; false); \
-    rm -r example; \
     ninja; \
     touch /dev/fuse; \
     ninja install; \

@@ -30,6 +30,7 @@ RUN apk add --no-cache git make gcc pkgconf musl-dev \
     glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
     libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables ip6tables nftables \
     bash go-md2man
+RUN go install github.com/mattn/go-sqlite3
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
@@ -109,10 +110,9 @@ WORKDIR /libfuse
 RUN set -ex; \
     mkdir -p build; \
     cd build; \
-    sed -i '/example/s/^/# /' ../meson.build; \
-    rm -r ../example; \
     LDFLAGS="-lpthread -s -w -static" meson --prefix /usr -D default_library=static .. || (cat /libfuse/build/meson-logs/meson-log.txt; false); \
     ninja; \
+    #mknod /dev/fuse -m 0666 c 10 229; \
     touch /dev/fuse; \
     ninja install; \
     fusermount3 -V

@@ -3,18 +3,18 @@ FROM alpine:3.20 AS gpg
 RUN apk add --no-cache gnupg
 
 # runc
-FROM golang:1.23-alpine3.20 AS runc
-ARG RUNC_VERSION=v1.2.4
+FROM golang:1.22-alpine3.20 AS runc
+ARG RUNC_VERSION=v1.2.2
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
 	wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
 	chmod +x /usr/local/bin/runc; \
-	runc --version 2>/dev/null; \
+	runc --version; \
 	! ldd /usr/local/bin/runc
 
 # podman build base
-FROM golang:1.23-alpine3.20 AS podmanbuildbase
+FROM golang:1.22-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
     btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
     glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -55,7 +55,7 @@ RUN set -ex; \
     bin/conmon --help >/dev/null
 
 # rust
-FROM rust:1.80-alpine3.20 AS rustbase
+FROM rust:1.78-alpine3.20 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 # netavark
@@ -116,7 +116,8 @@ RUN set -ex; \
 # catatonit
 FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
-ARG CATATONIT_VERSION=v0.2.1
+#ARG CATATONIT_VERSION=v0.2.1
+ARG CATATONIT_VERSION=v0.2.0
 RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
@@ -127,8 +128,8 @@ RUN set -ex; \
 
 # crun
 FROM gpg AS crun
-#ARG CRUN_VERSION=1.18.2
-ARG CRUN_VERSION=1.20
+#ARG CRUN_VERSION=1.20
+ARG CRUN_VERSION=1.18.2
 RUN set -ex; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
     wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
@@ -170,18 +171,15 @@ COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 
-# Build rootless podman base image with runc
-FROM rootlesspodmanbase AS rootlesspodmanrunc
-COPY --from=runc /usr/local/bin/runc /usr/local/bin/runc
-
 # Build minimal rootless podman
 FROM rootlesspodmanbase AS rootlesspodmanminimal
-COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
+#COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 COPY conf/crun-containers.conf /etc/containers/containers.conf
 
-# Build podman image with rootless binaries and CNI plugins
-FROM rootlesspodmanrunc AS podmanall
+# Build podman image with rootless binaries
+FROM rootlesspodmanbase AS podman
 RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
+COPY --from=runc /usr/local/bin/runc /usr/local/bin/runc
 COPY --from=aardvark-dns /aardvark-dns/target/release/aardvark-dns /usr/local/lib/podman/aardvark-dns
 COPY --from=podman /etc/containers/seccomp.json /etc/containers/seccomp.json

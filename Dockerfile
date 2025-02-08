@@ -2,9 +2,9 @@
 FROM alpine:3.20 AS gpg
 RUN apk add --no-cache gnupg
 
-# runc (from source)
-FROM golang:1.22-alpine3.20 AS runc
-ARG RUNC_VERSION=v1.2.2
+# runc
+FROM golang:1.23-alpine3.20 AS runc
+ARG RUNC_VERSION=v1.2.4
 RUN set -eux; \
     apk add --no-cache git; \
     git clone -c 'advice.detachedHead=false' --depth=1 --branch=${RUNC_VERSION} https://github.com/opencontainers/runc; \
@@ -16,7 +16,7 @@ RUN set -eux; \
     ! ldd /usr/local/bin/runc
 
 # podman build base
-FROM golang:1.22-alpine3.20 AS podmanbuildbase
+FROM golang:1.23-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
     btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
     glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -57,7 +57,7 @@ RUN set -ex; \
     bin/conmon --help >/dev/null
 
 # rust
-FROM rust:1.78-alpine3.20 AS rustbase
+FROM rust:1.80-alpine3.20 AS rustbase
 RUN apk add --update --no-cache git make musl-dev
 
 # netavark
@@ -118,7 +118,7 @@ RUN set -ex; \
 # catatonit
 FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
-ARG CATATONIT_VERSION=v0.2.0
+ARG CATATONIT_VERSION=v0.2.1
 RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
@@ -129,7 +129,8 @@ RUN set -ex; \
 
 # crun
 FROM gpg AS crun
-ARG CRUN_VERSION=1.18.2
+#ARG CRUN_VERSION=1.18.2
+ARG CRUN_VERSION=1.20
 RUN set -ex; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
     wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \

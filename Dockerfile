@@ -1,5 +1,5 @@
 ARG PODMAN_VERSION=v5.3.2
-ARG ALPINE_VERSION=3.21
+ARG ALPINE_VERSION=3.20
 ARG GOLANG_VERSION=1.23
 ARG RUST_VERSION=1.84.1
 ARG RUNC_VERSION=v1.2.4
@@ -30,7 +30,6 @@ RUN apk add --no-cache git make gcc pkgconf musl-dev \
     glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
     libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables ip6tables nftables \
     bash go-md2man
-RUN go install github.com/mattn/go-sqlite3@latest
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman

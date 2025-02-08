@@ -97,8 +97,8 @@ FROM rustbase AS aardvark-dns
 ARG AARDVARKDNS_VERSION=v1.13.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
-#ENV RUSTFLAGS='-C link-arg=-s'
-ENV RUSTFLAGS="-C target-cpu=native -C link-arg=-s"
+ENV RUSTFLAGS='-C link-arg=-s'
+#ENV RUSTFLAGS="-C target-cpu=native -C link-arg=-s"
 RUN cargo build --release
 
 
@@ -106,7 +106,7 @@ RUN cargo build --release
 FROM podmanbuildbase AS passt
 WORKDIR /
 RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
-ARG PASST_VERSION=2024_11_21.238c69f
+ARG PASST_VERSION=2025_01_21.4f2c8e7
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \
@@ -118,28 +118,28 @@ RUN set -ex; \
 
 
 # slirp4netns
-FROM podmanbuildbase AS slirp4netns
-WORKDIR /
-RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm
-# Build libslirp
-ARG LIBSLIRP_VERSION=v4.8.0
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
-WORKDIR /libslirp
-RUN set -ex; \
-	rm -rf /usr/lib/libglib-2.0.so /usr/lib/libintl.so; \
-	ln -s /usr/bin/clang /go/bin/clang; \
-	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
-	ninja -C build install
-# Build slirp4netns
-WORKDIR /
-ARG SLIRP4NETNS_VERSION=v1.3.1
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns
-#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns
-WORKDIR /slirp4netns
-RUN set -ex; \
-	./autogen.sh; \
-	LDFLAGS=-static ./configure --prefix=/usr; \
-	make
+#FROM podmanbuildbase AS slirp4netns
+#WORKDIR /
+#RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm
+## Build libslirp
+#ARG LIBSLIRP_VERSION=v4.8.0
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBSLIRP_VERSION} https://gitlab.freedesktop.org/slirp/libslirp.git
+#WORKDIR /libslirp
+#RUN set -ex; \
+#	rm -rf /usr/lib/libglib-2.0.so /usr/lib/libintl.so; \
+#	ln -s /usr/bin/clang /go/bin/clang; \
+#	LDFLAGS="-s -w -static" meson --prefix /usr -D default_library=static build; \
+#	ninja -C build install
+## Build slirp4netns
+#WORKDIR /
+#ARG SLIRP4NETNS_VERSION=v1.3.1
+#RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch ${SLIRP4NETNS_VERSION} https://github.com/rootless-containers/slirp4netns
+##RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${SLIRP4NETNS_VERSION:-$(curl -s https://api.github.com/repos/rootless-containers/slirp4netns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/rootless-containers/slirp4netns
+#WORKDIR /slirp4netns
+#RUN set -ex; \
+#	./autogen.sh; \
+#	LDFLAGS=-static ./configure --prefix=/usr; \
+#	make
 
 
 # fuse-overlayfs (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
@@ -242,7 +242,7 @@ COPY conf/crun-containers.conf /etc/containers/containers.conf
 #FROM rootlesspodmanrunc AS podmanall
 FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables nftables
-COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
+#COPY --from=slirp4netns /slirp4netns/slirp4netns /usr/local/bin/slirp4netns
 #COPY --from=netavark /netavark/target/release/netavark /usr/local/lib/podman/netavark
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc

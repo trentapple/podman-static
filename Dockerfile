@@ -1,9 +1,8 @@
-# ARG version numbers
-ARG ALPINE_VERSION=3.21.2
-ARG GOLANG_VERSION=1.23
-ARG RUST_VERSION=1.80
-ARG RUNC_VERSION=v1.2.4
 ARG PODMAN_VERSION=v5.3.2
+ARG ALPINE_VERSION=3.21
+ARG GOLANG_VERSION=1.23
+ARG RUST_VERSION=1.84.1
+ARG RUNC_VERSION=v1.2.4
 ARG CONMON_VERSION=v2.1.12
 ARG NETAVARK_VERSION=v1.13.1
 ARG AARDVARKDNS_VERSION=v1.13.1
@@ -25,7 +24,7 @@ RUN set -eux; \
 
 # podman build base
 FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS podmanbuildbase
-RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
+RUN apk add --no-cache git make gcc pkgconf musl-dev \
     btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
     glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
     libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables ip6tables nftables \
@@ -33,7 +32,7 @@ RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
-RUN apk add --update --no-cache tzdata curl
+RUN apk add --no-cache tzdata curl
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PODMAN_VERSION:-$(curl -s https://api.github.com/repos/containers/podman/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/podman src/github.com/containers/podman
@@ -64,27 +63,27 @@ RUN set -ex; \
 
 # rust
 FROM rust:${RUST_VERSION}-alpine${ALPINE_VERSION} AS rustbase
-RUN apk add --update --no-cache git make musl-dev
+RUN apk add --no-cache git make musl-dev
 
 # netavark
 FROM rustbase AS netavark
-RUN apk add --update --no-cache protoc
+RUN apk add --no-cache protoc
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark
 WORKDIR /netavark
-ENV RUSTFLAGS='-C target-cpu=native -C link-arg=-s'
+ENV RUSTFLAGS='-C target-feature=-crt-static -C target-cpu=native -C link-arg=-s'
 RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${AARDVARKDNS_VERSION:-$(curl -s https://api.github.com/repos/containers/aardvark-dns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
-ENV RUSTFLAGS='-C target-cpu=native -C link-arg=-s'
+ENV RUSTFLAGS='-C target-feature=-crt-static -C target-cpu=native -C link-arg=-s'
 RUN cargo build --release
 
 # passt
 FROM podmanbuildbase AS passt
 WORKDIR /
-RUN apk add --update --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
+RUN apk add --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PASST_VERSION:-$(curl -s https://api.github.com/repos/passt/releases/latest | grep tag_name | cut -d '"' -f 4)} git://passt.top/passt
 WORKDIR /passt
 RUN set -ex; \

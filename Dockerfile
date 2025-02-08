@@ -14,6 +14,7 @@ ARG CRUN_VERSION=1.18.2
 
 # runc
 FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS runc
+ARG RUNC_VERSION
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
@@ -32,6 +33,7 @@ RUN apk add --no-cache git make gcc pkgconf musl-dev \
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman
+ARG PODMAN_VERSION
 RUN apk add --no-cache tzdata curl
 ARG PODMAN_BUILDTAGS='seccomp selinux apparmor exclude_graphdriver_devicemapper containers_image_openpgp'
 ARG PODMAN_CGO=1
@@ -55,6 +57,7 @@ RUN set -ex; \
 
 # conmon (without systemd support)
 FROM podmanbuildbase AS conmon
+ARG CONMON_VERSION
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${CONMON_VERSION:-$(curl -s https://api.github.com/repos/containers/conmon/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/conmon /conmon
 WORKDIR /conmon
 RUN set -ex; \
@@ -67,6 +70,7 @@ RUN apk add --no-cache git make musl-dev
 
 # netavark
 FROM rustbase AS netavark
+ARG NETAVARK_VERSION
 RUN apk add --no-cache protoc
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${NETAVARK_VERSION:-$(curl -s https://api.github.com/repos/containers/netavark/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/netavark
 WORKDIR /netavark
@@ -75,6 +79,7 @@ RUN cargo build --release
 
 # aardvark-dns
 FROM rustbase AS aardvark-dns
+ARG AARDVARK-DNS_VERSION
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${AARDVARKDNS_VERSION:-$(curl -s https://api.github.com/repos/containers/aardvark-dns/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
 ENV RUSTFLAGS='-C target-feature=-crt-static -C target-cpu=native -C link-arg=-s'
@@ -82,6 +87,7 @@ RUN cargo build --release
 
 # passt
 FROM podmanbuildbase AS passt
+ARG PASST_VERSION
 WORKDIR /
 RUN apk add --no-cache autoconf automake meson ninja linux-headers libcap-static libcap-dev clang llvm coreutils
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${PASST_VERSION:-$(curl -s https://api.github.com/repos/passt/releases/latest | grep tag_name | cut -d '"' -f 4)} git://passt.top/passt
@@ -95,6 +101,8 @@ RUN set -ex; \
 
 # fuse-overlayfs
 FROM podmanbuildbase AS fuse-overlayfs
+ARG FUSEOVERLAYFS_VERSION
+ARG LIBFUSE_VERSION
 RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBFUSE_VERSION:-$(curl -s https://api.github.com/repos/libfuse/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
@@ -117,6 +125,7 @@ RUN set -ex; \
 
 # catatonit
 FROM podmanbuildbase AS catatonit
+ARG CATATONIT_VERSION
 RUN apk add --no-cache autoconf automake libtool
 RUN git clone -c 'advice.detachedHead=false' --branch=${CATATONIT_VERSION:-$(curl -s https://api.github.com/repos/openSUSE/catatonit/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/openSUSE/catatonit /catatonit
 WORKDIR /catatonit
@@ -128,6 +137,7 @@ RUN set -ex; \
 
 # crun
 FROM alpine:${ALPINE_VERSION} AS crun
+ARG CRUN_VERSION
 RUN apk add --no-cache gnupg
 RUN set -ex; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \

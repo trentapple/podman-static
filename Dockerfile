@@ -10,7 +10,7 @@ RUN set -eux; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
 	wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
 	chmod +x /usr/local/bin/runc; \
-	runc --version; \
+	runc --version 2>/dev/null; \
 	! ldd /usr/local/bin/runc
 
 # podman build base

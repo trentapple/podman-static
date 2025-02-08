@@ -109,7 +109,7 @@ WORKDIR /libfuse
 RUN set -ex; \
     mkdir -p build; \
     cd build; \
-    sed -i '/example/s/^/# /' ../meson.build \
+    sed -i '/example/s/^/# /' ../meson.build; \
     rm -r ../example; \
     LDFLAGS="-lpthread -s -w -static" meson --prefix /usr -D default_library=static .. || (cat /libfuse/build/meson-logs/meson-log.txt; false); \
     ninja; \

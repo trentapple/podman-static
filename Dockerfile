@@ -24,7 +24,8 @@ RUN apk add --no-cache git make gcc musl-dev pkgconf libseccomp-dev libseccomp-s
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $RUNC_VERSION https://github.com/opencontainers/runc /runc
 # install libseccomp
 ARG LIBSECCOMP_VERSION
-COPY /runc/script/seccomp.sh /runc/script/lib.sh /tmp/script/
+RUN ls -la /runc/
+COPY /runc/runc/script/seccomp.sh /runc/runc/script/lib.sh /tmp/script/
 RUN mkdir -p /opt/libseccomp \
     && /tmp/script/seccomp.sh "$LIBSECCOMP_VERSION" /opt/libseccomp 386 amd64 arm64 armel armhf ppc64le riscv64 s390x
 ENV LIBSECCOMP_VERSION=$LIBSECCOMP_VERSION

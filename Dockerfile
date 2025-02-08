@@ -131,8 +131,8 @@ FROM alpine:${ALPINE_VERSION} AS crun
 RUN apk add --update --no-cache gnupg
 RUN set -ex; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
-    wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/${CRUN_VERSION:-$(curl -s https://api.github.com/repos/containers/crun/releases/latest | grep tag_name | cut -d '"' -f 4)}/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
-    wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/${CRUN_VERSION:-$(curl -s https://api.github.com/repos/containers/crun/releases/latest | grep tag_name | cut -d '"' -f 4)}/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
+    wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/${CRUN_VERSION}/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
+    wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/${CRUN_VERSION}/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
     gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
     chmod +x /usr/local/bin/crun; \

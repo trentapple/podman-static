@@ -170,7 +170,7 @@ RUN set -ex; \
 # catatonit
 FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
-ARG CATATONIT_VERSION=v0.2.1
+ARG CATATONIT_VERSION=v0.2.0
 RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit /catatonit
 WORKDIR /catatonit
 RUN set -ex; \

@@ -103,7 +103,7 @@ RUN set -ex; \
 FROM podmanbuildbase AS fuse-overlayfs
 ARG FUSEOVERLAYFS_VERSION
 ARG LIBFUSE_VERSION
-RUN apk add --update --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
+RUN apk add --no-cache autoconf automake meson ninja clang g++ eudev-dev fuse3-dev
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=${LIBFUSE_VERSION:-$(curl -s https://api.github.com/repos/libfuse/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \

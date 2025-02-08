@@ -3,10 +3,12 @@ FROM alpine:3.20 AS gpg
 RUN apk add --no-cache gnupg
 
 # runc
-FROM golang:1.22-alpine3.20 AS runc
-ARG RUNC_VERSION=v1.2.2
+FROM golang:1.23-alpine3.20 AS runc
+ARG RUNC_VERSION=v1.2.4
 # Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
+	mkdir -p /etc/containers; \
+	curl -fsSL "https://raw.githubusercontent.com/containers/common/${COMMON_VERSION}/pkg/seccomp/seccomp.json" > /etc/containers/seccomp.json; \
 	ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
 	wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
 	chmod +x /usr/local/bin/runc; \
@@ -14,7 +16,7 @@ RUN set -eux; \
 	! ldd /usr/local/bin/runc
 
 # podman build base
-FROM golang:1.22-alpine3.20 AS podmanbuildbase
+FROM golang:1.23-alpine3.20 AS podmanbuildbase
 RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
     btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
     glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
@@ -84,7 +86,7 @@ RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$PASST_VERSION g
 WORKDIR /passt
 RUN set -ex; \
     make static; \
-    mkdir bin; \
+    mkdir -p bin; \
     cp pasta bin/; \
     [ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
     ! ldd /passt/bin/pasta
@@ -96,7 +98,7 @@ ARG LIBFUSE_VERSION=fuse-3.16.2
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$LIBFUSE_VERSION https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
 RUN set -ex; \
-    mkdir build; \
+    mkdir -p build; \
     cd build; \
     LDFLAGS="-lpthread -s -w -static" meson --prefix /usr -D default_library=static .. || (cat /libfuse/build/meson-logs/meson-log.txt; false); \
     ninja; \
@@ -116,8 +118,7 @@ RUN set -ex; \
 # catatonit
 FROM podmanbuildbase AS catatonit
 RUN apk add --update --no-cache autoconf automake libtool
-#ARG CATATONIT_VERSION=v0.2.1
-ARG CATATONIT_VERSION=v0.2.0
+ARG CATATONIT_VERSION=v0.2.1
 RUN git clone -c 'advice.detachedHead=false' --branch=$CATATONIT_VERSION https://github.com/openSUSE/catatonit /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
@@ -128,8 +129,8 @@ RUN set -ex; \
 
 # crun
 FROM gpg AS crun
-#ARG CRUN_VERSION=1.20
-ARG CRUN_VERSION=1.18.2
+ARG CRUN_VERSION=1.20
+#ARG CRUN_VERSION=1.18.2
 RUN set -ex; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
     wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
@@ -142,7 +143,7 @@ RUN set -ex; \
 # Build podman base image
 FROM alpine:3.20 AS podmanbase
 LABEL maintainer=""
-RUN apk add --no-cache tzdata ca-certificates
+RUN apk add --update --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
@@ -177,7 +178,7 @@ FROM rootlesspodmanbase AS rootlesspodmanminimal
 COPY conf/crun-containers.conf /etc/containers/containers.conf
 
 # Build podman image with rootless binaries
-FROM rootlesspodmanbase AS podmanall
+FROM rootlesspodmanrunc AS podmanall
 RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY --from=runc /usr/local/bin/runc /usr/local/bin/runc

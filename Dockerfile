@@ -110,7 +110,8 @@ FROM rustbase AS aardvark-dns
 ARG AARDVARKDNS_VERSION=v1.13.1
 RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch=$AARDVARKDNS_VERSION https://github.com/containers/aardvark-dns
 WORKDIR /aardvark-dns
-ENV RUSTFLAGS='-C link-arg=-s'
+#ENV RUSTFLAGS='-C link-arg=-s'
+ENV RUSTFLAGS="-C target-cpu=native -C link-args=-s,aWl,--no-keep-memory"
 RUN cargo build --release
 
 

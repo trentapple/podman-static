@@ -10,7 +10,7 @@ ARG PASST_VERSION=2025_01_21.4f2c8e7
 ARG LIBFUSE_VERSION=fuse-3.16.2
 ARG FUSEOVERLAYFS_VERSION=v1.14
 ARG CATATONIT_VERSION=v0.2.1
-ARG CRUN_VERSION=1.20
+ARG CRUN_VERSION=1.18.2
 
 # runc
 FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS runc
@@ -90,7 +90,7 @@ RUN set -ex; \
     make static; \
     mkdir -p bin; \
     mv pasta bin/; \
-    [ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
+    [ ! -f pasta.avx2 ] || mv pasta.avx2 bin/; \
     ! ldd /passt/bin/pasta
 
 # fuse-overlayfs
@@ -117,7 +117,7 @@ RUN set -ex; \
 
 # catatonit
 FROM podmanbuildbase AS catatonit
-RUN apk add --update --no-cache autoconf automake libtool
+RUN apk add --no-cache autoconf automake libtool
 RUN git clone -c 'advice.detachedHead=false' --branch=${CATATONIT_VERSION:-$(curl -s https://api.github.com/repos/openSUSE/catatonit/releases/latest | grep tag_name | cut -d '"' -f 4)} https://github.com/openSUSE/catatonit /catatonit
 WORKDIR /catatonit
 RUN set -ex; \
@@ -128,11 +128,11 @@ RUN set -ex; \
 
 # crun
 FROM alpine:${ALPINE_VERSION} AS crun
-RUN apk add --update --no-cache gnupg
+RUN apk add --no-cache gnupg
 RUN set -ex; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
-    wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/${CRUN_VERSION}/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
-    wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/${CRUN_VERSION}/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
+    wget -O /usr/local/bin/crun https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd; \
+    wget -O /tmp/crun.asc https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-${CRUN_VERSION}-linux-${ARCH}-disable-systemd.asc; \
     gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 027F3BD58594CA181BB5EC50E4730F97F60286ED; \
     gpg --batch --verify /tmp/crun.asc /usr/local/bin/crun; \
     chmod +x /usr/local/bin/crun; \
@@ -141,7 +141,7 @@ RUN set -ex; \
 # Build podman base image
 FROM alpine:${ALPINE_VERSION} AS podmanbase
 LABEL maintainer=""
-RUN apk add --update --no-cache tzdata ca-certificates
+RUN apk add --no-cache tzdata ca-certificates
 COPY --from=conmon /conmon/bin/conmon /usr/local/lib/podman/conmon
 COPY --from=podman /usr/local/lib/podman/rootlessport /usr/local/lib/podman/rootlessport
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman

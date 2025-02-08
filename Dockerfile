@@ -30,7 +30,7 @@ RUN apk add --no-cache git make gcc pkgconf musl-dev \
     glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
     libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables ip6tables nftables \
     bash go-md2man
-RUN go install github.com/mattn/go-sqlite3
+RUN go install github.com/mattn/go-sqlite3@latest
 
 # podman (without systemd support)
 FROM podmanbuildbase AS podman

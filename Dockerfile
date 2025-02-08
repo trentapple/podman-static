@@ -21,17 +21,17 @@ ARG LIBSECCOMP_VERSION=2.5.5
 FROM golang:1.23-alpine3.20 AS runc
 ARG RUNC_VERSION=v1.1.13
 RUN apk add --no-cache git make gcc musl-dev pkgconf libseccomp-dev libseccomp-static
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $RUNC_VERSION https://github.com/opencontainers/runc.git /runc
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $RUNC_VERSION https://github.com/opencontainers/runc /runc
 WORKDIR /runc
 # install libseccomp
 ARG LIBSECCOMP_VERSION
-COPY script/seccomp.sh script/lib.sh /tmp/script/
+COPY /runc/script/seccomp.sh /runc/script/lib.sh /tmp/script/
 RUN mkdir -p /opt/libseccomp \
     && /tmp/script/seccomp.sh "$LIBSECCOMP_VERSION" /opt/libseccomp 386 amd64 arm64 armel armhf ppc64le riscv64 s390x
 ENV LIBSECCOMP_VERSION=$LIBSECCOMP_VERSION
 ENV LD_LIBRARY_PATH=/opt/libseccomp/lib
 ENV PKG_CONFIG_PATH=/opt/libseccomp/lib/pkgconfig
-
+# Build runc
 RUN make static BUILDTAGS="seccomp apparmor selinux"
 RUN cp runc /usr/local/bin/runc
 RUN chmod +x /usr/local/bin/runc

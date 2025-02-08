@@ -21,8 +21,9 @@ ARG RUNC_VERSION=v1.1.13
 ARG LIBSECCOMP_VERSION=2.5.5
 RUN apk add --no-cache git make gcc musl-dev pkgconf libseccomp-dev libseccomp-static
 # Clone runc and install the repo included libseccomp
-RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $RUNC_VERSION https://github.com/opencontainers/runc /runc && ls -la /runc/script && mkdir -p /tmp/script && cp /runc/script/seccomp.sh /tmp/script/seccomp.sh && cp /runc/script/lib.sh /tmp/script/lib.sh && mkdir -p /opt/libseccomp \
-    && /tmp/script/seccomp.sh "$LIBSECCOMP_VERSION" /opt/libseccomp 386 amd64 arm64 armel armhf ppc64le riscv64 s390x
+RUN git clone -c 'advice.detachedHead=false' --depth=1 --branch $RUNC_VERSION https://github.com/opencontainers/runc /runc && mkdir -p /opt/libseccomp \
+    && /runc/script/seccomp.sh "$LIBSECCOMP_VERSION" /opt/libseccomp 386 amd64 arm64 armel armhf
+# /opt/libseccomp 386 amd64 arm64 armel armhf ppc64le riscv64 s390x
 #COPY script/seccomp.sh script/lib.sh /tmp/script/
 # Caution and perhaps use a local version of the script folder
 #RUN mkdir -p /opt/libseccomp \

@@ -177,7 +177,7 @@ FROM rootlesspodmanbase AS rootlesspodmanminimal
 COPY conf/crun-containers.conf /etc/containers/containers.conf
 
 # Build podman image with rootless binaries
-FROM rootlesspodmanbase AS podman-static
+FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit
 COPY --from=runc /usr/local/bin/runc /usr/local/bin/runc

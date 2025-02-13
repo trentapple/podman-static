@@ -1,4 +1,4 @@
-# podman binaries and container images ![GitHub workflow badge](https://github.com/trentapple/podman-static/workflows/Push/badge.svg)
+# podman binaries and container images ![GitHub workflow badge](https://github.com/trentapple/podman-static/workflows/Release/badge.svg)
 
 This project provides alpine-based podman container images and statically linked (rootless) podman binaries for linux/amd64 and linux/arm64/v8 machines along with its dependencies _(without systemd support)_:
 * [podman](https://github.com/containers/podman)
@@ -9,7 +9,6 @@ This project provides alpine-based podman container images and statically linked
 * [Netavark](https://github.com/containers/netavark): container network stack (default in podman 5 or later)
 * [aardvark-dns](https://github.com/containers/aardvark-dns): Authoritative DNS server for A/AAAA container records _([forwards other queries to host's /etc/resolv.conf](https://github.com/containers/aardvark-dns#aardvark-dns))_
 * [pasta / passt](https://passt.top/): Pack A Subtle Tap Abstraction (same binary as passt (Plug A Simple Socket Transport), different command) offers equivalent functionality, for network namespaces: traffic is forwarded using a tap interface inside the namespace
-~* [CNI plugins](https://github.com/containernetworking/plugins): loopback, bridge, host-local, portmap, firewall, tuning~
 * [catatonit](https://github.com/openSUSE/catatonit)
 
 CNI has been replaced as the default. See also: [Podman Networking Docs](https://docs.podman.io/en/latest/markdown/podman-network.1.html)

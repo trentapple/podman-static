@@ -18,7 +18,6 @@ RUN apk add --no-cache gnupg
 # runc
 FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS runc
 ARG RUNC_VERSION
-# Download runc binary release since static build doesn't work with musl libc anymore since 1.1.8, see https://github.com/opencontainers/runc/issues/3950
 RUN set -eux; \
     ARCH="`uname -m | sed 's!x86_64!amd64!; s!aarch64!arm64!'`"; \
     wget -O /usr/local/bin/runc https://github.com/opencontainers/runc/releases/download/$RUNC_VERSION/runc.$ARCH; \
@@ -47,8 +46,7 @@ RUN set -eux; \
     mkdir -p /etc/containers; \
     curl -fsSL "https://raw.githubusercontent.com/containers/common/${COMMON_VERSION}/pkg/seccomp/seccomp.json" > /etc/containers/seccomp.json
 RUN set -ex; \
-    export CGO_ENABLED=$PODMAN_CGO; \
-    make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
+    CGO_ENABLED=${PODMAN_CGO} make bin/podman LDFLAGS_PODMAN="-s -w -extldflags '-static'" BUILDTAGS='${PODMAN_BUILDTAGS}'; \
     mv bin/podman /usr/local/bin/podman; \
     podman --help >/dev/null; \
     ! ldd /usr/local/bin/podman
@@ -102,7 +100,7 @@ RUN set -ex; \
     [ ! -f pasta.avx2 ] || cp pasta.avx2 bin/; \
     ! ldd /passt/bin/pasta
 
-# fuse-overlayfs
+# fuse-overlayfs and libfuse (fusermount3)
 FROM podmanbuildbase AS fuse-overlayfs
 ARG FUSEOVERLAYFS_VERSION
 ARG LIBFUSE_VERSION
@@ -151,7 +149,7 @@ RUN set -ex; \
     chmod +x /usr/local/bin/crun; \
     ! ldd /usr/local/bin/crun
 
-# Build podman base image
+# podman base image
 FROM alpine:${ALPINE_VERSION} AS podmanbase
 LABEL maintainer=""
 RUN apk add --no-cache tzdata ca-certificates
@@ -175,7 +173,7 @@ RUN set -ex; \
     /usr/local/lib/podman/conmon --help >/dev/null
 ENV _CONTAINERS_USERNS_CONFIGURED=""
 
-# Build rootless podman base image (without OCI runtime)
+# rootless podman base image (w/o OCI runtime)
 FROM podmanbase AS rootlesspodmanbase
 ENV BUILDAH_ISOLATION=chroot container=oci
 RUN apk add --no-cache shadow-uidmap
@@ -183,12 +181,12 @@ COPY --from=fuse-overlayfs /usr/bin/fuse-overlayfs /usr/local/bin/fuse-overlayfs
 COPY --from=fuse-overlayfs /usr/bin/fusermount3 /usr/local/bin/fusermount3
 COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 
-# Build minimal rootless podman
+# minimal rootless podman
 FROM rootlesspodmanbase AS rootlesspodmanminimal
 COPY --from=crun /usr/local/bin/crun /usr/local/bin/crun
 COPY conf/crun-containers.conf /etc/containers/containers.conf
 
-# Build podman image with rootless binaries
+# podman image with rootless podman and tools
 FROM rootlesspodmanbase AS podmanall
 RUN apk add --no-cache iptables ip6tables nftables
 COPY --from=catatonit /catatonit/catatonit /usr/local/lib/podman/catatonit

@@ -1,6 +1,6 @@
 # podman binaries and container images ![GitHub workflow badge](https://github.com/trentapple/podman-static/workflows/Release/badge.svg)
 
-This project provides alpine-based podman container images and statically linked (rootless) podman binaries for linux/amd64 and linux/arm64/v8 machines along with its dependencies _(without systemd support)_:
+This project provides alpine-based (musl) podman container images and statically linked (rootless) podman binaries for linux/amd64 and linux/arm64/v8 machines along with its dependencies _(without systemd support)_:
 * [podman](https://github.com/containers/podman)
 * [runc](https://github.com/opencontainers/runc/) or [crun](https://github.com/containers/crun)
 * [conmon](https://github.com/containers/conmon)
@@ -37,7 +37,7 @@ _`docker` is linked to `podman` within the container to support applications tha
 
 ## Binary installation on a host
 
-_If using an arm64 (aarch64) machine (e.g. a Raspberry Pi) then substitute "amd64" with "arm64" in the commands below to ensure the installation is compatible with your machine's architecture._
+_If using an arm64 (aarch64) machine (e.g. a Raspberry Pi 4 or later) then substitute "amd64" with "arm64" in the commands below to ensure the installation is compatible with your machine's architecture._
 
 Download the statically linked binaries of podman and its dependencies:
 ```sh

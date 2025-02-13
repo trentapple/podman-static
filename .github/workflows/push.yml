@@ -15,9 +15,6 @@ env:
 jobs:
   push:
     runs-on: ubuntu-22.04
-    #permissions:
-    #    deployments: write
-    #    packages: write
     steps:
     - name: Download a Build Artifact archive amd64
       uses: actions/download-artifact@v4.1.8
@@ -43,7 +40,6 @@ jobs:
         path: ./build/asset/podman-linux-arm64.tar.gz.asc
         name: podman-linux-arm64.tar.gz.asc
 
-
     - name: Log into GitHub registry
       run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       env:
@@ -63,8 +59,7 @@ jobs:
         # Expand tags: 1.2.3 -> 1 1.2 1.2.3
         TAGS="$(echo "$TAGS" | sed -E -e 's/^((([0-9]+)\.[0-9]+)\.[0-9]+)$/\3 \2 \1/')"
 
-        #for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
-        for IMAGE in $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
+        for IMAGE in $PODMAN_REMOTE_IMAGE $PODMAN_IMAGE $PODMAN_MINIMAL_IMAGE; do
           TAG_SUFFIX=$(echo $IMAGE | sed -E -e 's/^([^-]+)//')
           LATEST_TAG="$([ "$TAG_SUFFIX" ] && echo $TAG_SUFFIX | sed -E -e 's/^-//' || echo latest)"
           [ "$TAGS" == "main" ] && IMAGE_TAGS="$LATEST_TAG" || IMAGE_TAGS="$LATEST_TAG $TAGS"
@@ -77,7 +72,7 @@ jobs:
           done
           echo
           echo "Pushing $IMAGE image $GITHUB_IMAGE_REPO"
-          make "$IMAGE" PODMAN_BUILD_OPTS="$TAG_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$TAG_OPTS" PODMAN_REMOTE_BUILD_OPTS="$TAG_OPTS"
+          make "$IMAGE" PODMAN_BUILD_OPTS="$TAG_OPTS" PODMAN_MINIMAL_BUILD_OPTS="$TAG_OPTS"
         done
       env:
         BUILDX_OUTPUT: type=registry
@@ -103,7 +98,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`
         asset_path: ./build/asset/podman-linux-arm64.tar.gz.asc
         asset_name: podman-linux-arm64.tar.gz.asc
         asset_content_type: application/octet-stream
@@ -115,7 +110,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`
         asset_path: ./build/asset/podman-linux-arm64.tar.gz
         asset_name: podman-linux-arm64.tar.gz
         asset_content_type: application/octet-stream
@@ -127,7 +122,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`
         asset_path: ./build/asset/podman-linux-amd64.tar.gz.asc
         asset_name: podman-linux-amd64.tar.gz.asc
         asset_content_type: application/octet-stream
@@ -139,7 +134,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+        upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`
         asset_path: ./build/asset/podman-linux-amd64.tar.gz
         asset_name: podman-linux-amd64.tar.gz
         asset_content_type: application/octet-stream

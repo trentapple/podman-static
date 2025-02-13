@@ -1,16 +1,19 @@
+ARG PODMAN_VERSION=v5.3.2
+ARG ALPINE_VERSION=3.20
+ARG GOLANG_VERSION=1.23
+
 # podman build base
-FROM golang:1.22-alpine3.20 AS podmanbuildbase
-RUN apk add --update --no-cache git make gcc pkgconf musl-dev \
+FROM golang:${GOLANG_VERSION}-alpine${ALPINE_VERSION} AS podmanbuildbase
+RUN apk add --no-cache git make gcc pkgconf musl-dev \
 	btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper \
 	glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev \
 	libseccomp-dev libseccomp-static libselinux-dev ostree-dev openssl iptables ip6tables nftables \
 	bash go-md2man
 
-
 # podman remote
 FROM podmanbuildbase AS podman-remote
-RUN apk add --update --no-cache curl
-ARG PODMAN_VERSION=v5.3.2
+RUN apk add --no-cache curl
+ARG PODMAN_VERSION
 RUN git clone -c advice.detachedHead=false --depth=1 --branch=${PODMAN_VERSION} https://github.com/containers/podman src/github.com/containers/podman
 WORKDIR $GOPATH/src/github.com/containers/podman
 RUN set -eux; \
@@ -21,6 +24,6 @@ RUN set -eux; \
 	podman --help >/dev/null; \
 	[ "$(ldd /usr/local/bin/podman-remote | wc -l)" -eq 0 ] || (ldd /usr/local/bin/podman-remote; false)
 
-FROM alpine:3.20
+FROM alpine:${ALPINE_VERSION}
 COPY --from=podman-remote /usr/local/bin /usr/local/bin
 RUN adduser -D podman-remote -h /podman -u 1000

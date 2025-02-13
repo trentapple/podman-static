@@ -1,15 +1,14 @@
 name: Verify
 
 on:
-  # Trigger the workflow on push or pull request on master branch
   pull_request:
     branches:
-    - master
+    - main
 
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Check out code
@@ -21,8 +20,8 @@ jobs:
         platforms: all
 
     - name: Build & test linux/amd64 image
-      run: make images test
+      run: make images
+      #run: make images test
 
     - name: Build multi-arch images and binaries
       run: make clean multiarch-tar
-

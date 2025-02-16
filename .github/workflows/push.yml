@@ -15,6 +15,9 @@ env:
 jobs:
   push:
     runs-on: ubuntu-22.04
+    permissions:
+       deployments: write
+       packages: write
     steps:
     - name: Download a Build Artifact archive amd64
       uses: actions/download-artifact@v4.1.8
